@@ -260,8 +260,6 @@ const TABLE_NAME = "photos";
 const ADMIN_PASSWORD = "degistir123"; // sadece kolay silme için basit bir şifre, güvenlik katmanı değildir
 /* ========================================================================= */
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const grid = document.getElementById('grid');
 const emptyState = document.getElementById('emptyState');
 const statusEl = document.getElementById('status');
@@ -277,16 +275,29 @@ const toast = document.getElementById('toast');
 let isAdmin = sessionStorage.getItem('umre_admin') === 'true';
 let photos = [];
 
+function setStatus(msg, isError=false){
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('error', isError);
+}
+
+// Butonları HEMEN bağla — Supabase henüz hazır olmasa bile tıklamalar çalışsın
+uploadBtn.addEventListener('click', ()=> fileInput.click());
+
+let supabase;
+try{
+  if(!window.supabase){
+    throw new Error('Supabase kütüphanesi yüklenemedi (internet/CDN sorunu olabilir)');
+  }
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}catch(err){
+  setStatus('Bağlantı hatası: ' + err.message, true);
+}
+
 function showToast(msg, isError=false){
   toast.textContent = msg;
   toast.classList.add('show');
   toast.style.background = isError ? '#A64B3F' : '#2A2521';
   setTimeout(()=> toast.classList.remove('show'), 2600);
-}
-
-function setStatus(msg, isError=false){
-  statusEl.textContent = msg;
-  statusEl.classList.toggle('error', isError);
 }
 
 function publicUrl(path){
@@ -390,9 +401,11 @@ downloadAllBtn.addEventListener('click', async ()=>{
   }
 });
 
-uploadBtn.addEventListener('click', ()=> fileInput.click());
-
 fileInput.addEventListener('change', async (e)=>{
+  if(!supabase){
+    setStatus('Bağlantı kurulamadı, sayfayı yenileyip tekrar dene', true);
+    return;
+  }
   const files = Array.from(e.target.files || []);
   if(!files.length) return;
 
@@ -468,7 +481,11 @@ function openLightbox(url){
 lightboxClose.addEventListener('click', ()=> lightbox.classList.remove('open'));
 lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) lightbox.classList.remove('open'); });
 
-loadPhotos();
+if(supabase){
+  loadPhotos();
+} else {
+  emptyState.style.display = 'block';
+}
 </script>
 </body>
 </html>
