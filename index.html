@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Umre Anılarımız</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --sand: #F6F1E7;
+    --sand-deep: #ECE2CB;
+    --ink: #2A2521;
+    --ink-soft: #6B6156;
+    --gold: #9C7A3C;
+    --gold-soft: #C9A968;
+    --line: #DCCFAE;
+    --white: #FFFDF8;
+    --danger: #A64B3F;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--sand);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .pattern-rule{
+    height:14px;
+    width:100%;
+    background-image: repeating-linear-gradient(45deg, var(--gold-soft) 0, var(--gold-soft) 1px, transparent 1px, transparent 10px);
+    opacity:0.35;
+  }
+  header{
+    padding:36px 20px 24px;
+    text-align:center;
+    max-width:640px;
+    margin:0 auto;
+  }
+  h1{
+    font-family:'Amiri',serif;
+    font-weight:700;
+    font-size:2.1rem;
+    margin:0 0 8px;
+    color:var(--ink);
+    letter-spacing:0.01em;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:0.95rem;
+    line-height:1.5;
+  }
+  .upload-bar{
+    max-width:640px;
+    margin:22px auto 0;
+    padding:0 20px;
+    display:flex;
+    gap:10px;
+  }
+  .btn{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:0.92rem;
+    padding:13px 18px;
+    border-radius:3px;
+    border:1px solid var(--gold);
+    background:var(--gold);
+    color:var(--white);
+    cursor:pointer;
+    flex:1;
+    transition:background 0.15s ease, transform 0.1s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn:hover{ background:#87682F; }
+  .btn.secondary{
+    background:transparent;
+    color:var(--ink);
+    border:1px solid var(--line);
+    flex:none;
+    padding:13px 16px;
+  }
+  .btn.secondary:hover{ background:var(--sand-deep); }
+  .btn:disabled{ opacity:0.5; cursor:default; }
+  #fileInput{ display:none; }
+
+  .status{
+    max-width:640px;
+    margin:14px auto 0;
+    padding:0 20px;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    min-height:1.2em;
+  }
+  .status.error{ color:var(--danger); }
+
+  main{
+    max-width:960px;
+    margin:28px auto 60px;
+    padding:0 14px;
+  }
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+  }
+  @media(min-width:640px){
+    .grid{ grid-template-columns:repeat(3,1fr); gap:14px; }
+  }
+  @media(min-width:960px){
+    .grid{ grid-template-columns:repeat(4,1fr); }
+  }
+  .card{
+    position:relative;
+    background:var(--white);
+    border:1px solid var(--line);
+    border-radius:3px;
+    overflow:hidden;
+    aspect-ratio:1/1;
+  }
+  .card img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .card-actions{
+    position:absolute;
+    bottom:0; left:0; right:0;
+    display:flex;
+    justify-content:flex-end;
+    gap:6px;
+    padding:8px;
+    background:linear-gradient(to top, rgba(0,0,0,0.55), transparent);
+    opacity:0;
+    transition:opacity 0.15s ease;
+  }
+  .card:hover .card-actions, .card:focus-within .card-actions{ opacity:1; }
+  .icon-btn{
+    width:32px;height:32px;
+    border-radius:3px;
+    border:none;
+    background:rgba(255,253,248,0.92);
+    color:var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;
+    font-size:15px;
+  }
+  .icon-btn.danger{ color:var(--danger); }
+
+  .empty{
+    text-align:center;
+    padding:60px 20px;
+    color:var(--ink-soft);
+  }
+  .empty .glyph{
+    font-family:'Amiri',serif;
+    font-size:2.4rem;
+    color:var(--gold-soft);
+    display:block;
+    margin-bottom:10px;
+  }
+
+  footer{
+    text-align:center;
+    padding:20px;
+    font-size:0.78rem;
+    color:var(--ink-soft);
+  }
+  footer button{
+    background:none;border:none;color:var(--ink-soft);
+    text-decoration:underline;cursor:pointer;font-size:0.78rem;
+    padding:0;
+  }
+
+  .lightbox{
+    position:fixed; inset:0;
+    background:rgba(20,16,12,0.92);
+    display:none;
+    align-items:center; justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .lightbox.open{ display:flex; }
+  .lightbox img{ max-width:100%; max-height:88vh; border-radius:2px; }
+  .lightbox-close{
+    position:absolute; top:16px; right:16px;
+    width:38px;height:38px;
+    background:rgba(255,253,248,0.15);
+    border:1px solid rgba(255,253,248,0.4);
+    color:var(--white);
+    border-radius:3px;
+    font-size:18px;
+    cursor:pointer;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:20px; left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--ink);
+    color:var(--white);
+    padding:12px 20px;
+    border-radius:4px;
+    font-size:0.88rem;
+    opacity:0;
+    transition:all 0.25s ease;
+    pointer-events:none;
+    z-index:60;
+    max-width:90vw;
+    text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="pattern-rule"></div>
+
+<header>
+  <h1>Umre Anılarımız</h1>
+  <p>Çektiğin güzel kareleri buraya yükle, herkes birlikte biriktirsin. Kayıt gerekmiyor — seç, yükle, bitti.</p>
+</header>
+
+<div class="upload-bar">
+  <button class="btn" id="uploadBtn">Fotoğraf Yükle</button>
+  <button class="btn secondary" id="downloadAllBtn" title="Hepsini indir">Hepsini İndir</button>
+  <input type="file" id="fileInput" accept="image/*" multiple>
+</div>
+<div class="status" id="status"></div>
+
+<main>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="emptyState" style="display:none;">
+    <span class="glyph">﷽</span>
+    İlk fotoğrafı yükleyen sen ol.
+  </div>
+</main>
+
+<footer>
+  <button id="adminToggle">yönetici girişi</button>
+</footer>
+
+<div class="lightbox" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">✕</button>
+  <img id="lightboxImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ AYARLAR — kendi Supabase bilgilerinle değiştir ============ */
+const SUPABASE_URL = "https://xvueuwevnkcvbsfyxtgj.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable__f3gKVe7wAgfblvEgjoCgA_QTzw3Psp";
+const BUCKET_NAME = "Umre-photos";
+const TABLE_NAME = "photos";
+const ADMIN_PASSWORD = "degistir123"; // sadece kolay silme için basit bir şifre, güvenlik katmanı değildir
+/* ========================================================================= */
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const grid = document.getElementById('grid');
+const emptyState = document.getElementById('emptyState');
+const statusEl = document.getElementById('status');
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const downloadAllBtn = document.getElementById('downloadAllBtn');
+const adminToggle = document.getElementById('adminToggle');
+const lightbox = document.getElementById('lightbox');
+const lightboxImg = document.getElementById('lightboxImg');
+const lightboxClose = document.getElementById('lightboxClose');
+const toast = document.getElementById('toast');
+
+let isAdmin = sessionStorage.getItem('umre_admin') === 'true';
+let photos = [];
+
+function showToast(msg, isError=false){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  toast.style.background = isError ? '#A64B3F' : '#2A2521';
+  setTimeout(()=> toast.classList.remove('show'), 2600);
+}
+
+function setStatus(msg, isError=false){
+  statusEl.textContent = msg;
+  statusEl.classList.toggle('error', isError);
+}
+
+function publicUrl(path){
+  const { data } = supabase.storage.from(BUCKET_NAME).getPublicUrl(path);
+  return data.publicUrl;
+}
+
+async function loadPhotos(){
+  setStatus('Fotoğraflar yükleniyor...');
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .select('*')
+    .order('created_at', { ascending:false });
+
+  if(error){
+    setStatus('Fotoğraflar yüklenemedi: ' + error.message, true);
+    return;
+  }
+  photos = data || [];
+  renderGrid();
+  setStatus(photos.length ? `${photos.length} fotoğraf` : '');
+}
+
+function renderGrid(){
+  grid.innerHTML = '';
+  emptyState.style.display = photos.length ? 'none' : 'block';
+
+  for(const p of photos){
+    const url = publicUrl(p.storage_path);
+    const card = document.createElement('div');
+    card.className = 'card';
+
+    const img = document.createElement('img');
+    img.src = url;
+    img.loading = 'lazy';
+    img.alt = 'Umre fotoğrafı';
+    img.addEventListener('click', ()=> openLightbox(url));
+    card.appendChild(img);
+
+    const actions = document.createElement('div');
+    actions.className = 'card-actions';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'icon-btn';
+    dlBtn.title = 'İndir';
+    dlBtn.textContent = '⬇';
+    dlBtn.addEventListener('click', (e)=>{ e.stopPropagation(); downloadPhoto(url, p.storage_path); });
+    actions.appendChild(dlBtn);
+
+    if(isAdmin){
+      const delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn danger';
+      delBtn.title = 'Sil';
+      delBtn.textContent = '✕';
+      delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); deletePhoto(p); });
+      actions.appendChild(delBtn);
+    }
+
+    card.appendChild(actions);
+    grid.appendChild(card);
+  }
+}
+
+async function downloadPhoto(url, path){
+  try{
+    const res = await fetch(url);
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = path.split('/').pop();
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }catch(err){
+    showToast('İndirilemedi', true);
+  }
+}
+
+downloadAllBtn.addEventListener('click', async ()=>{
+  if(!photos.length){ showToast('Henüz fotoğraf yok'); return; }
+  downloadAllBtn.disabled = true;
+  setStatus('Zip hazırlanıyor, biraz sürebilir...');
+  try{
+    const zip = new JSZip();
+    for(const p of photos){
+      const url = publicUrl(p.storage_path);
+      const res = await fetch(url);
+      const blob = await res.blob();
+      zip.file(p.storage_path.split('/').pop(), blob);
+    }
+    const content = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'umre-anilarimiz.zip';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    setStatus(`${photos.length} fotoğraf`);
+  }catch(err){
+    setStatus('Zip oluşturulamadı: ' + err.message, true);
+  }finally{
+    downloadAllBtn.disabled = false;
+  }
+});
+
+uploadBtn.addEventListener('click', ()=> fileInput.click());
+
+fileInput.addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  if(!files.length) return;
+
+  uploadBtn.disabled = true;
+  let done = 0;
+
+  for(const file of files){
+    setStatus(`Yükleniyor... (${done+1}/${files.length})`);
+    const ext = file.name.split('.').pop();
+    const fileName = `${crypto.randomUUID()}.${ext}`;
+    const path = fileName;
+
+    const { error: uploadError } = await supabase
+      .storage.from(BUCKET_NAME)
+      .upload(path, file, { cacheControl:'3600', upsert:false });
+
+    if(uploadError){
+      showToast(`Yüklenemedi: ${file.name}`, true);
+      continue;
+    }
+
+    const { error: insertError } = await supabase
+      .from(TABLE_NAME)
+      .insert({ storage_path: path });
+
+    if(insertError){
+      showToast(`Kaydedilemedi: ${file.name}`, true);
+      continue;
+    }
+    done++;
+  }
+
+  setStatus(`${done} fotoğraf yüklendi`);
+  showToast(`${done} fotoğraf eklendi ✓`);
+  fileInput.value = '';
+  uploadBtn.disabled = false;
+  loadPhotos();
+});
+
+async function deletePhoto(p){
+  if(!confirm('Bu fotoğrafı silmek istediğine emin misin?')) return;
+  await supabase.storage.from(BUCKET_NAME).remove([p.storage_path]);
+  await supabase.from(TABLE_NAME).delete().eq('id', p.id);
+  showToast('Fotoğraf silindi');
+  loadPhotos();
+}
+
+adminToggle.addEventListener('click', ()=>{
+  if(isAdmin){
+    isAdmin = false;
+    sessionStorage.removeItem('umre_admin');
+    adminToggle.textContent = 'yönetici girişi';
+    renderGrid();
+    return;
+  }
+  const pw = prompt('Yönetici şifresi:');
+  if(pw === ADMIN_PASSWORD){
+    isAdmin = true;
+    sessionStorage.setItem('umre_admin', 'true');
+    adminToggle.textContent = 'yönetici çıkışı';
+    renderGrid();
+    showToast('Yönetici modu açık');
+  }else if(pw !== null){
+    showToast('Yanlış şifre', true);
+  }
+});
+if(isAdmin) adminToggle.textContent = 'yönetici çıkışı';
+
+function openLightbox(url){
+  lightboxImg.src = url;
+  lightbox.classList.add('open');
+}
+lightboxClose.addEventListener('click', ()=> lightbox.classList.remove('open'));
+lightbox.addEventListener('click', (e)=>{ if(e.target === lightbox) lightbox.classList.remove('open'); });
+
+loadPhotos();
+</script>
+</body>
+</html>
