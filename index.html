@@ -272,7 +272,12 @@ const lightboxImg = document.getElementById('lightboxImg');
 const lightboxClose = document.getElementById('lightboxClose');
 const toast = document.getElementById('toast');
 
-let isAdmin = sessionStorage.getItem('umre_admin') === 'true';
+let isAdmin = false;
+try{
+  isAdmin = sessionStorage.getItem('umre_admin') === 'true';
+}catch(err){
+  // sessionStorage engellenmiş olabilir, sorun değil, admin modu kapalı başlar
+}
 let photos = [];
 
 function setStatus(msg, isError=false){
@@ -456,7 +461,7 @@ async function deletePhoto(p){
 adminToggle.addEventListener('click', ()=>{
   if(isAdmin){
     isAdmin = false;
-    sessionStorage.removeItem('umre_admin');
+    try{ sessionStorage.removeItem('umre_admin'); }catch(err){}
     adminToggle.textContent = 'yönetici girişi';
     renderGrid();
     return;
@@ -464,7 +469,7 @@ adminToggle.addEventListener('click', ()=>{
   const pw = prompt('Yönetici şifresi:');
   if(pw === ADMIN_PASSWORD){
     isAdmin = true;
-    sessionStorage.setItem('umre_admin', 'true');
+    try{ sessionStorage.setItem('umre_admin', 'true'); }catch(err){}
     adminToggle.textContent = 'yönetici çıkışı';
     renderGrid();
     showToast('Yönetici modu açık');
